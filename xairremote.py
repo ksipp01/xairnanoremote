@@ -10,12 +10,12 @@ import time
 import socket
 from alsa_midi import SequencerClient, WRITE_PORT, MidiBytesEvent
 from pythonx32 import x32
-
+bus_changed = 0
 found_addr   = -1
 is_raspberry = os.uname()[4][:3] == 'arm'
 
 def main():
-  global found_addr, found_port, fader_init_val, bus_init_val, is_raspberry
+  global found_addr, found_port, fader_init_val, bus_init_val, is_raspberry, bus_changed
 
   # setup the MIDI sequencer client for xairremote
   client = SequencerClient("xairremote")
@@ -48,7 +48,7 @@ def main():
     mixer = x32.BehringerX32(f"{addr_subnet}.{found_addr}", local_port, False, 10, found_port)
 
     # parse MIDI inevents
-    bus_ch          = 5; # define here the bus channel you want to control
+    bus_ch          = 7; # define here the bus channel you want to control
     MIDI_table      = nanoKONTROL_MIDI_lookup() # create MIDI table for nanoKONTROL
     MIDI_statusbyte = 0
     cur_SCENE       = -1
@@ -73,6 +73,40 @@ def main():
 
         if len(event.midi_bytes) == 2 or len(event.midi_bytes) == 3:
           # send corresponding OSC commands to the mixer
+          #BEGIN ADD
+          #momentary high values set the bus. 
+          if (MIDI_databyte1) > 40:
+            bus_changed = 1
+          if (bus_changed) == 1: #only do this if it changed.  that way the light signals selection 
+            if (MIDI_databyte1)== 43:
+              if (MIDI_databyte2) == 127:
+                bus_ch = 1
+            if (MIDI_databyte1)== 44:
+              if (MIDI_databyte2) == 127:
+                bus_ch = 2
+            if (MIDI_databyte1)== 42:
+              if (MIDI_databyte2) == 127:
+                bus_ch = 3
+            if (MIDI_databyte1)== 41:
+              if (MIDI_databyte2) == 127:
+                bus_ch = 4
+            if (MIDI_databyte1)== 45:
+              if (MIDI_databyte2) == 127:
+                bus_ch = 5
+            if (MIDI_databyte1)== 46:  #bus 6 is SubWoffer mix
+              if (MIDI_databyte2) == 127:
+                bus_ch = 6
+            if (MIDI_databyte1)== 46: #main mix id bus set at 7
+              if (MIDI_databyte2) == 0:
+                bus_ch = 7
+            query_all_faders(mixer, bus_ch)
+            bus_changed = 0
+
+
+
+              
+
+
           c = (MIDI_statusbyte, MIDI_databyte1)
           if c in MIDI_table:
             channel = MIDI_table[c][2] + 1
@@ -82,7 +116,8 @@ def main():
               query_all_faders(mixer, bus_ch)
               cur_SCENE = MIDI_table[c][0]
 
-            if MIDI_table[c][0] == 0 and MIDI_table[c][1] == "f": # fader in first SCENE
+            #if MIDI_table[c][0] == 0 and MIDI_table[c][1] == "f": # fader in first SCENE
+            if bus_ch == 7:
               ini_value = fader_init_val[channel - 1]
               # only apply value if current fader value is not too far off
               if ini_value < 0 or (ini_value >= 0 and abs(ini_value - value) < 0.01):
@@ -92,7 +127,8 @@ def main():
               else:
                 threading.Thread(target = switch_pi_board_led, args = (True, )).start() # takes time to process
 
-            if MIDI_table[c][0] == 1 and MIDI_table[c][1] == "f": # bus fader in second SCENE
+           # if MIDI_table[c][0] == 1 and MIDI_table[c][1] == "f": # bus fader in second SCENE
+            if (bus_ch <7):
               ini_value = bus_init_val[channel - 1]
               # only apply value if current fader value is not too far off
               if ini_value < 0 or (ini_value >= 0 and abs(ini_value - value) < 0.01):
@@ -116,9 +152,9 @@ def main():
 
 def query_all_faders(mixer, bus_ch): # query all current fader values
     global fader_init_val, bus_init_val
-    fader_init_val = [0] * 9 # nanoKONTROL has 9 faders
-    bus_init_val   = [0] * 9
-    for i in range(8):
+    fader_init_val = [0] * 16 # nanoKONTROL has 9 faders
+    bus_init_val   = [0] * 16
+    for i in range(16): # was(80)
       fader_init_val[i] = mixer.get_value(f'/ch/{i + 1:#02}/mix/fader')[0]
       bus_init_val[i]   = mixer.get_value(f'/ch/{i + 1:#02}/mix/{bus_ch:#02}/level')[0]
 
@@ -163,12 +199,52 @@ def get_ip():
       s.close()
     return IP
 
+#def nanoKONTROL_MIDI_lookup():
+ #   # (scene, type, value), types: "f" is fader, "d" is dial, "b1" is button 1, "b2" is button 2
+  #  return {(0XB0,  2): (0, "f",  0), (0XB0,  3): (0, "f",  1), (0XB0,  4): (0, "f",  2), (0XB0,  5): (0, "f",  3), (0XB0,  6): (0, "f",  4),
+  #          (0XB0,  8): (0, "f",  5), (0XB0,  9): (0, "f",  6), (0XB0, 12): (0, "f",  7), (0XB0, 13): (0, "f",  8),
+  #          (0XB0, 14): (0, "d",  0), (0XB0, 15): (0, "d",  1), (0XB0, 16): (0, "d",  2), (0XB0, 17): (0, "d",  3), (0XB0, 18): (0, "d",  4),
+   #         (0XB0, 19): (0, "d",  5), (0XB0, 20): (0, "d",  6), (0XB0, 21): (0, "d",  7), (0XB0, 22): (0, "d",  8),
+   #         (0XB0, 33): (0, "b1", 0), (0XB0, 34): (0, "b1", 1), (0XB0, 35): (0, "b1", 2), (0XB0, 36): (0, "b1", 3), (0XB0, 37): (0, "b1", 4),
+   #         (0XB0, 38): (0, "b1", 5), (0XB0, 39): (0, "b1", 6), (0XB0, 40): (0, "b1", 7), (0XB0, 41): (0, "b1", 8),
+   #         (0XB0, 23): (0, "b2", 0), (0XB0, 24): (0, "b2", 1), (0XB0, 25): (0, "b2", 2), (0XB0, 26): (0, "b2", 3), (0XB0, 27): (0, "b2", 4),
+   #         (0XB0, 28): (0, "b2", 5), (0XB0, 29): (0, "b2", 6), (0XB0, 30): (0, "b2", 7), (0XB0, 31): (0, "b2", 8),
+
+    #        (0XB0, 42): (1, "f",  0), (0XB0, 43): (1, "f",  1), (0XB0, 50): (1, "f",  2), (0XB0, 51): (1, "f",  3), (0XB0, 52): (1, "f",  4),
+    #        (0XB0, 53): (1, "f",  5), (0XB0, 54): (1, "f",  6), (0XB0, 55): (1, "f",  7), (0XB0, 56): (1, "f",  8),
+    #        (0XB0, 57): (1, "d",  0), (0XB0, 58): (1, "d",  1), (0XB0, 59): (1, "d",  2), (0XB0, 60): (1, "d",  3), (0XB0, 61): (1, "d",  4),
+    #        (0XB0, 62): (1, "d",  5), (0XB0, 63): (1, "d",  6), (0XB0, 65): (1, "d",  7), (0XB0, 66): (1, "d",  8),
+    #        (0XB0, 76): (1, "b1", 0), (0XB0, 77): (1, "b1", 1), (0XB0, 78): (1, "b1", 2), (0XB0, 79): (1, "b1", 3), (0XB0, 80): (1, "b1", 4),
+    #        (0XB0, 81): (1, "b1", 5), (0XB0, 82): (1, "b1", 6), (0XB0, 83): (1, "b1", 7), (0XB0, 84): (1, "b1", 8),
+    #        (0XB0, 67): (1, "b2", 0), (0XB0, 68): (1, "b2", 1), (0XB0, 69): (1, "b2", 2), (0XB0, 70): (1, "b2", 3), (0XB0, 71): (1, "b2", 4),
+    #        (0XB0, 72): (1, "b2", 5), (0XB0, 73): (1, "b2", 6), (0XB0, 74): (1, "b2", 7), (0XB0, 75): (1, "b2", 8),
+
+    #        (0XB0,  85): (2, "f",  0), (0XB0,  86): (2, "f",  1), (0XB0,  87): (2, "f",  2), (0XB0,  88): (2, "f",  3), (0XB0,  89): (2, "f",  4),
+    #        (0XB0,  90): (2, "f",  5), (0XB0,  91): (2, "f",  6), (0XB0,  92): (2, "f",  7), (0XB0,  93): (2, "f",  8),
+    #        (0XB0,  94): (2, "d",  0), (0XB0,  95): (2, "d",  1), (0XB0,  96): (2, "d",  2), (0XB0,  97): (2, "d",  3), (0XB0, 102): (2, "d",  4),
+    #        (0XB0, 103): (2, "d",  5), (0XB0, 104): (2, "d",  6), (0XB0, 105): (2, "d",  7), (0XB0, 106): (2, "d",  8),
+    #        (0XB0, 116): (2, "b1", 0), (0XB0, 117): (2, "b1", 1), (0XB0, 118): (2, "b1", 2), (0XB0, 119): (2, "b1", 3), (0XB0, 120): (2, "b1", 4),
+    #        (0XB0, 121): (2, "b1", 5), (0XB0, 122): (2, "b1", 6), (0XB0, 123): (2, "b1", 7), (0XB0, 124): (2, "b1", 8),
+    #        (0XB0, 107): (2, "b2", 0), (0XB0, 108): (2, "b2", 1), (0XB0, 109): (2, "b2", 2), (0XB0, 110): (2, "b2", 3), (0XB0, 111): (2, "b2", 4),
+    #        (0XB0, 112): (2, "b2", 5), (0XB0, 113): (2, "b2", 6), (0XB0, 114): (2, "b2", 7), (0XB0, 115): (2, "b2", 8),
+
+     #       (0XB0,  7): (3, "f",  0), (0XB1,  7): (3, "f",  1), (0XB2,  7): (3, "f",  2), (0XB3,  7): (3, "f",  3), (0XB4,  7): (3, "f",  4),
+     #       (0XB5,  7): (3, "f",  5), (0XB6,  7): (3, "f",  6), (0XB7,  7): (3, "f",  7), (0XB8,  7): (3, "f",  8),
+     #       (0XB0, 10): (3, "d",  0), (0XB1, 10): (3, "d",  1), (0XB2, 10): (3, "d",  2), (0XB3, 10): (3, "d",  3), (0XB4, 10): (3, "d",  4),
+     #       (0XB5, 10): (3, "d",  5), (0XB6, 10): (3, "d",  6), (0XB7, 10): (3, "d",  7), (0XB8, 10): (3, "d",  8),
+     #       #(0XB0, 17): (3, "b1", 0), # overlaps with first set fourth dial
+     #       (0XB1, 17): (3, "b1", 1), (0XB2, 17): (3, "b1", 2), (0XB3, 17): (3, "b1", 3), (0XB4, 17): (3, "b1", 4),
+     #       (0XB5, 17): (3, "b1", 5), (0XB6, 17): (3, "b1", 6), (0XB7, 17): (3, "b1", 7), (0XB8, 17): (3, "b1", 8),
+     #       #(0XB0, 16): (3, "b2", 0), # overlaps with first set third dial
+     #       (0XB1, 16): (3, "b2", 1), (0XB2, 16): (3, "b2", 2), (0XB3, 16): (3, "b2", 3), (0XB4, 16): (3, "b2", 4),
+     #       (0XB5, 16): (3, "b2", 5), (0XB6, 16): (3, "b2", 6), (0XB7, 16): (3, "b2", 7), (0XB8, 16): (3, "b2", 8)}
+
 def nanoKONTROL_MIDI_lookup():
     # (scene, type, value), types: "f" is fader, "d" is dial, "b1" is button 1, "b2" is button 2
-    return {(0XB0,  2): (0, "f",  0), (0XB0,  3): (0, "f",  1), (0XB0,  4): (0, "f",  2), (0XB0,  5): (0, "f",  3), (0XB0,  6): (0, "f",  4),
-            (0XB0,  8): (0, "f",  5), (0XB0,  9): (0, "f",  6), (0XB0, 12): (0, "f",  7), (0XB0, 13): (0, "f",  8),
-            (0XB0, 14): (0, "d",  0), (0XB0, 15): (0, "d",  1), (0XB0, 16): (0, "d",  2), (0XB0, 17): (0, "d",  3), (0XB0, 18): (0, "d",  4),
-            (0XB0, 19): (0, "d",  5), (0XB0, 20): (0, "d",  6), (0XB0, 21): (0, "d",  7), (0XB0, 22): (0, "d",  8),
+    return {(0XB0,  0): (0, "f",  0), (0XB0,  1): (0, "f",  6), (0XB0,  2): (0, "f",  7), (0XB0,  3): (0, "f",  8), (0XB0,  4): (0, "f",  10),
+            (0XB0,  5): (0, "f", 12), (0XB0,  6): (0, "f", 13), (0XB0,  7): (0, "f", 14), (0XB0,  8): (0, "f",  8),
+            (0XB0, 16): (0, "d",  9), (0XB0, 17): (0, "d",  1), (0XB0, 18): (0, "d",  2), (0XB0, 19): (0, "d",  3), (0XB0, 20): (0, "d",  4),
+            (0XB0, 21): (0, "d",  5), (0XB0, 22): (0, "d",  6), (0XB0, 23): (0, "d",  7), (0XB0, 22): (0, "d",  8),
             (0XB0, 33): (0, "b1", 0), (0XB0, 34): (0, "b1", 1), (0XB0, 35): (0, "b1", 2), (0XB0, 36): (0, "b1", 3), (0XB0, 37): (0, "b1", 4),
             (0XB0, 38): (0, "b1", 5), (0XB0, 39): (0, "b1", 6), (0XB0, 40): (0, "b1", 7), (0XB0, 41): (0, "b1", 8),
             (0XB0, 23): (0, "b2", 0), (0XB0, 24): (0, "b2", 1), (0XB0, 25): (0, "b2", 2), (0XB0, 26): (0, "b2", 3), (0XB0, 27): (0, "b2", 4),
@@ -192,7 +268,7 @@ def nanoKONTROL_MIDI_lookup():
             (0XB0, 107): (2, "b2", 0), (0XB0, 108): (2, "b2", 1), (0XB0, 109): (2, "b2", 2), (0XB0, 110): (2, "b2", 3), (0XB0, 111): (2, "b2", 4),
             (0XB0, 112): (2, "b2", 5), (0XB0, 113): (2, "b2", 6), (0XB0, 114): (2, "b2", 7), (0XB0, 115): (2, "b2", 8),
 
-            (0XB0,  7): (3, "f",  0), (0XB1,  7): (3, "f",  1), (0XB2,  7): (3, "f",  2), (0XB3,  7): (3, "f",  3), (0XB4,  7): (3, "f",  4),
+     #       (0XB0,  7): (3, "f",  0), (0XB1,  7): (3, "f",  1), (0XB2,  7): (3, "f",  2), (0XB3,  7): (3, "f",  3), (0XB4,  7): (3, "f",  4),
             (0XB5,  7): (3, "f",  5), (0XB6,  7): (3, "f",  6), (0XB7,  7): (3, "f",  7), (0XB8,  7): (3, "f",  8),
             (0XB0, 10): (3, "d",  0), (0XB1, 10): (3, "d",  1), (0XB2, 10): (3, "d",  2), (0XB3, 10): (3, "d",  3), (0XB4, 10): (3, "d",  4),
             (0XB5, 10): (3, "d",  5), (0XB6, 10): (3, "d",  6), (0XB7, 10): (3, "d",  7), (0XB8, 10): (3, "d",  8),
@@ -205,5 +281,8 @@ def nanoKONTROL_MIDI_lookup():
 
 if __name__ == '__main__':
   main()
+
+
+
 
 
