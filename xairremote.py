@@ -75,6 +75,11 @@ def main():
           # send corresponding OSC commands to the mixer
           #BEGIN ADD
           #momentary high values set the bus. 
+          if MIDI_databyte1 == 32:
+            if MIDI_databyte2 == 127:
+              fader1 = 16
+            else:
+              fader1 = 1
           if (MIDI_databyte1) > 40:
             bus_changed = 1
           if (bus_changed) == 1: #only do this if it changed.  that way the light signals selection 
@@ -111,6 +116,8 @@ def main():
           if c in MIDI_table:
             channel = MIDI_table[c][2] + 1
             value   = MIDI_databyte2 / 127
+            if channel ==1:
+              channel = fader1
             # reset fader init values if SCENE has changed
             if cur_SCENE is not MIDI_table[c][0]:
               query_all_faders(mixer, bus_ch)
