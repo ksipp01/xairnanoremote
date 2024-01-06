@@ -1,4 +1,4 @@
-#cleaned
+#cleaned +power off
 # control a Behringer XAIR mixer with a nanoKONTROL connected to a Raspberry Pi
 import os
 import sys
@@ -148,7 +148,8 @@ def main():
             if MIDI_table[c][0] == 3 and MIDI_table[c][1] == "d": # dial in last SCENE
               mixer.set_value(f'/ch/{channel:#02}/mix/pan', [value], False)
 
-            if is_raspberry and MIDI_table[c][0] == 3 and MIDI_table[c][1] == "b2": # button 2 of last fader in last SCENE
+           # if is_raspberry and MIDI_table[c][0] == 3 and MIDI_table[c][1] == "b2": # button 2 of last fader in last SCENE
+            if MIDI_table[c][0] == 3 and MIDI_table[c][1] == "b2": # button 2 of last fader in last SCENE
               if MIDI_databyte2 == 0: # on turing LED off
                 os.system('sudo shutdown -h now')
 
@@ -210,7 +211,7 @@ def get_ip():
 def nanoKONTROL_MIDI_lookup():
     # (scene, type, value), types: "f" is fader, "d" is dial, "b1" is button 1, "b2" is button 2
     return {(0XB0,  0): (0, "f",  0), (0XB0,  1): (0, "f",  6), (0XB0,  2): (0, "f",  7), (0XB0,  3): (0, "f",  8), (0XB0,  4): (0, "f",  10),
-            (0XB0,  5): (0, "f", 12), (0XB0,  6): (0, "f", 13), (0XB0,  7): (0, "f", 14), (0XB0,  8): (0, "f",  8),
+            (0XB0,  5): (0, "f", 12), (0XB0,  6): (0, "f", 13), (0XB0,  7): (0, "f", 14), (0XB0,  8): (0, "f",  8), (0XB0, 71): (3, "b2", 7)
     }
 if __name__ == '__main__':
   main()
