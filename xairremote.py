@@ -1,4 +1,4 @@
-#cleaned +power off
+#cleaned +power off latest version 1pm
 # control a Behringer XAIR mixer with a nanoKONTROL connected to a Raspberry Pi
 import os
 import sys
@@ -89,7 +89,7 @@ def main():
 
           f = (MIDI_statusbyte, MIDI_databyte1, MIDI_databyte2) # S button push
           if f in faderShift_table:
-            x = faderShift_table[f][0] 
+            x = faderShift_table[f][0] -1
             fader[x] = faderShift_table[f][1]
 
           c = (MIDI_statusbyte, MIDI_databyte1)
