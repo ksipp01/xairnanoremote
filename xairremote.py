@@ -1,4 +1,4 @@
-#cleaned +power off
+#cleaned +power off latest version
 # control a Behringer XAIR mixer with a nanoKONTROL connected to a Raspberry Pi
 import os
 import sys
