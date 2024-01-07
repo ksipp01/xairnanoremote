@@ -50,6 +50,7 @@ def main():
     # parse MIDI inevents
     bus_ch          = 7; # define here the bus channel you want to control
     MIDI_table      = nanoKONTROL_MIDI_lookup() # create MIDI table for nanoKONTROL
+    AUX_table       = auxBus_lookup()
     MIDI_statusbyte = 0
     cur_SCENE       = -1
     
@@ -76,7 +77,9 @@ def main():
           # send corresponding OSC commands to the mixer
           #BEGIN ADD
           #momentary high values set the bus. 
-          if MIDI_databyte1 == 32:
+
+          # start group commnent
+          """ if MIDI_databyte1 == 32:
             if MIDI_databyte2 == 127:
               fader1 = 16
             else:
@@ -106,8 +109,14 @@ def main():
               if (MIDI_databyte2) == 0:
                 bus_ch = 7
             query_all_faders(mixer, bus_ch)
-            bus_changed = 0
-          
+            bus_changed = 0 """
+
+
+
+          d = (MIDI_statusbyte, MIDI_databyte1, MIDI_databyte2)
+          if d in AUX_table:
+            bus_ch = AUX_table[d]
+            query_all_faders(mixer, bus_ch)         
 
 
               
@@ -213,6 +222,12 @@ def nanoKONTROL_MIDI_lookup():
     return {(0XB0,  0): (0, "f",  0), (0XB0,  1): (0, "f",  6), (0XB0,  2): (0, "f",  7), (0XB0,  3): (0, "f",  8), (0XB0,  4): (0, "f",  10),
             (0XB0,  5): (0, "f", 12), (0XB0,  6): (0, "f", 13), (0XB0,  7): (0, "f", 14), (0XB0,  8): (0, "f",  8), (0XB0, 71): (3, "b2", 7)
     }
+
+def auxBus_lookup():
+    # (status, cc, value): (auxbus#)
+    return {(0XB0, 43, 127): (1), (0XB0, 44, 127): (2), (0XB0, 42, 127): (3), (0XB0, 41, 127): (4), (0XB0, 45, 127): (5), (0XB0, 46, 127): (6), (0XB0, 46, 0): (1)}
+
+
 if __name__ == '__main__':
   main()
 
