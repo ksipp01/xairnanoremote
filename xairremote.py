@@ -126,7 +126,7 @@ def main():
 
           f = (MIDI_statusbyte, MIDI_databyte1, MIDI_databyte2) # S button push
           if f in faderShift_table:
-            x = faderShift_table[f][0] 
+            x = faderShift_table[f][0] -1
             fader[x] = faderShift_table[f][1]
             #channel = faderShift_table[f]
             #query_all_faders(mixer, bus_ch)
