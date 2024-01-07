@@ -89,7 +89,7 @@ def main():
 
           f = (MIDI_statusbyte, MIDI_databyte1, MIDI_databyte2) # S button push
           if f in faderShift_table:
-            x = faderShift_table[f][0] -1
+            x = faderShift_table[f][0] 
             fader[x] = faderShift_table[f][1]
 
           c = (MIDI_statusbyte, MIDI_databyte1)
