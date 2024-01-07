@@ -81,43 +81,6 @@ def main():
 
         if len(event.midi_bytes) == 2 or len(event.midi_bytes) == 3:
           # send corresponding OSC commands to the mixer
-          #BEGIN ADD
-          #momentary high values set the bus. 
-
-          # start group commnent
-          # if MIDI_databyte1 == 32:
-          #   if MIDI_databyte2 == 127:
-          #     fader1 = 16
-          #   else:
-          #     fader1 = 1
-          """if (MIDI_databyte1) > 40:
-            bus_changed = 1
-          if (bus_changed) == 1: #only do this if it changed.  that way the light signals selection 
-            if (MIDI_databyte1)== 43:
-              if (MIDI_databyte2) == 127:
-                bus_ch = 1
-            if (MIDI_databyte1)== 44:
-              if (MIDI_databyte2) == 127:
-                bus_ch = 2
-            if (MIDI_databyte1)== 42:
-              if (MIDI_databyte2) == 127:
-                bus_ch = 3
-            if (MIDI_databyte1)== 41:
-              if (MIDI_databyte2) == 127:
-                bus_ch = 4
-            if (MIDI_databyte1)== 45:
-              if (MIDI_databyte2) == 127:
-                bus_ch = 5
-            if (MIDI_databyte1)== 46:  #bus 6 is SubWoffer mix
-              if (MIDI_databyte2) == 127:
-                bus_ch = 6
-            if (MIDI_databyte1)== 46: #main mix id bus set at 7
-              if (MIDI_databyte2) == 0:
-                bus_ch = 7
-            query_all_faders(mixer, bus_ch)
-            bus_changed = 0 """
-
-
 
           d = (MIDI_statusbyte, MIDI_databyte1, MIDI_databyte2)
           if d in AUX_table:
@@ -128,24 +91,19 @@ def main():
           if f in faderShift_table:
             x = faderShift_table[f][0] -1
             fader[x] = faderShift_table[f][1]
-            #channel = faderShift_table[f]
-            #query_all_faders(mixer, bus_ch)
-               
-              
-
 
           c = (MIDI_statusbyte, MIDI_databyte1)
           if c in MIDI_table:
             #channel = MIDI_table[c][2] + 1
             channel = MIDI_table[c][2] 
             value   = MIDI_databyte2 / 127
-            if channel ==1:
+            if channel ==16:
                 channel = fader[0]
-            if channel ==2:
+            if channel ==7:
                 channel = fader[1]
-            if channel ==3:
+            if channel ==8:
                 channel = fader[2]
-            if channel ==4:
+            if channel ==9:
                 channel = fader[3]
             # reset fader init values if SCENE has changed
             if cur_SCENE is not MIDI_table[c][0]:
@@ -247,7 +205,7 @@ def nanoKONTROL_MIDI_lookup():
 def auxBus_lookup():
     # (status, cc, value): (auxbus#)
     # number matches actual bus # (vs faders above off by 1)
-    return {(0XB0, 43, 127): (1), (0XB0, 44, 127): (2), (0XB0, 42, 127): (3), (0XB0, 41, 127): (4), (0XB0, 45, 127): (5), (0XB0, 46, 127): (6), (0XB0, 46, 0): (1)}
+    return {(0XB0, 43, 127): (1), (0XB0, 44, 127): (2), (0XB0, 42, 127): (3), (0XB0, 41, 127): (4), (0XB0, 45, 127): (5), (0XB0, 46, 127): (6), (0XB0, 46, 0): (7)}
 def faderShift_lookup():
     # (status, cc, value): (scene, XRchannelassignment)
     # eg (0XB0, 32, 0): (15) sets the nano fader #1 to channel 16 when the solo button (CC32) is off (0XB0, 32, 127): (0) sets it to 1 when on
