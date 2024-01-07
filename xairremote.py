@@ -13,9 +13,14 @@ from pythonx32 import x32
 bus_changed = 0
 found_addr   = -1
 is_raspberry = os.uname()[4][:3] == 'arm'
-fader1 = 1
+# fader1 = 16  #actual XR ch number
+# fader2 = 6
+# fader3 = 8
+# fader4 = 9
+fader = [16,6,8,9]
 def main():
-  global found_addr, found_port, fader_init_val, bus_init_val, is_raspberry, bus_changed, fader1
+  #global found_addr, found_port, fader_init_val, bus_init_val, is_raspberry, bus_changed, fader1, fader2, fader3, fader4, fader
+  global found_addr, found_port, fader_init_val, bus_init_val, is_raspberry, bus_changed, fader
 
   # setup the MIDI sequencer client for xairremote
   client = SequencerClient("xairremote")
@@ -80,11 +85,11 @@ def main():
           #momentary high values set the bus. 
 
           # start group commnent
-          if MIDI_databyte1 == 32:
-            if MIDI_databyte2 == 127:
-              fader1 = 16
-            else:
-              fader1 = 1
+          # if MIDI_databyte1 == 32:
+          #   if MIDI_databyte2 == 127:
+          #     fader1 = 16
+          #   else:
+          #     fader1 = 1
           """if (MIDI_databyte1) > 40:
             bus_changed = 1
           if (bus_changed) == 1: #only do this if it changed.  that way the light signals selection 
@@ -119,19 +124,29 @@ def main():
             bus_ch = AUX_table[d]
             query_all_faders(mixer, bus_ch)         
 
-          f = (MIDI_statusbyte, MIDI_databyte1, MIDI_databyte2)
+          f = (MIDI_statusbyte, MIDI_databyte1, MIDI_databyte2) # S button push
           if f in faderShift_table:
-            channel = faderShift_table[f]
-            query_all_faders(mixer, bus_ch)   
+            x = faderShift_table[f][0] 
+            fader[x] = faderShift_table[f][1]
+            #channel = faderShift_table[f]
+            #query_all_faders(mixer, bus_ch)
+               
               
 
 
           c = (MIDI_statusbyte, MIDI_databyte1)
           if c in MIDI_table:
-            channel = MIDI_table[c][2] + 1
+            #channel = MIDI_table[c][2] + 1
+            channel = MIDI_table[c][2] 
             value   = MIDI_databyte2 / 127
-           # if channel ==1:
-              #channel = fader1
+            if channel ==1:
+                channel = fader[0]
+            if channel ==2:
+                channel = fader[1]
+            if channel ==3:
+                channel = fader[2]
+            if channel ==4:
+                channel = fader[3]
             # reset fader init values if SCENE has changed
             if cur_SCENE is not MIDI_table[c][0]:
               query_all_faders(mixer, bus_ch)
@@ -224,22 +239,22 @@ def get_ip():
 def nanoKONTROL_MIDI_lookup():
     # (scene, type, value), types: "f" is fader, "d" is dial, "b1" is button 1, "b2" is button 2
     # these need to match the faderShift "off " selections below 
-    # noate XR channel is -1 here so 0 = ch 1
-    return {(0XB0,  0): (0, "f",  15), (0XB0,  1): (0, "f",  6), (0XB0,  2): (0, "f",  7), (0XB0,  3): (0, "f",  8), (0XB0,  4): (0, "f",  10),
-            (0XB0,  5): (0, "f", 12), (0XB0,  6): (0, "f", 13), (0XB0,  7): (0, "f", 14)} #, (0XB0,  8): (0, "f",  8), (0XB0, 71): (3, "b2", 7)}
-    
+    # Orig was XR channel is -1 here so 0 = ch 1 below
+    return {(0XB0,  0): (0, "f",  16), (0XB0,  1): (0, "f",  7), (0XB0,  2): (0, "f",  8), (0XB0,  3): (0, "f",  9), (0XB0,  4): (0, "f",  11),
+            (0XB0,  5): (0, "f", 13), (0XB0,  6): (0, "f", 14), (0XB0,  7): (0, "f", 15)} #, (0XB0,  8): (0, "f",  8), (0XB0, 71): (3, "b2", 7)}
+
 
 def auxBus_lookup():
     # (status, cc, value): (auxbus#)
     # number matches actual bus # (vs faders above off by 1)
     return {(0XB0, 43, 127): (1), (0XB0, 44, 127): (2), (0XB0, 42, 127): (3), (0XB0, 41, 127): (4), (0XB0, 45, 127): (5), (0XB0, 46, 127): (6), (0XB0, 46, 0): (1)}
 def faderShift_lookup():
-    # (status, cc, value): (XRchannelassignment)
+    # (status, cc, value): (scene, XRchannelassignment)
     # eg (0XB0, 32, 0): (15) sets the nano fader #1 to channel 16 when the solo button (CC32) is off (0XB0, 32, 127): (0) sets it to 1 when on
     # practice uses electronic drums on ch 16 vs gig acoustic with 4 mices so can use second selection on nano to have 4 mic drum faders
     # number beleow is -1 from actual channel on XR
-    return {(0XB0, 32, 0): (15), (0XB0, 32, 127): (0), (0XB0, 33, 0): (6), (0XB0, 33, 127): (1), (0XB0, 34, 0): (7), (0XB0, 34, 127): (2), (0XB0, 35, 0): (8),
-            (0XB0, 35, 127): (3)}
+    return {(0XB0, 32, 0): (1, 16), (0XB0, 32, 127): (1, 1), (0XB0, 33, 0): (2, 7), (0XB0, 33, 127): (2, 2), (0XB0, 34, 0): (3, 8), (0XB0, 34, 127): (3, 3), 
+            (0XB0, 35, 0): (4, 9), (0XB0, 35, 127): (4, 4)}
 
 if __name__ == '__main__':
   main()
