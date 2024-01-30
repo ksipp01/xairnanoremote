@@ -17,7 +17,7 @@ is_raspberry = os.uname()[4][:3] == 'arm'
 # fader2 = 6
 # fader3 = 8
 # fader4 = 9
-fader = [16,6,8,9]
+fader = [16,7,8,9]
 def main():
   #global found_addr, found_port, fader_init_val, bus_init_val, is_raspberry, bus_changed, fader1, fader2, fader3, fader4, fader
   global found_addr, found_port, fader_init_val, bus_init_val, is_raspberry, bus_changed, fader
