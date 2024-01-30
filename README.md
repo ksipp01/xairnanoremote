@@ -18,7 +18,7 @@ sudo apt-get update
 sudo apt-get dist-upgrade
 sudo apt-get install git python3-pip
 python3 -m pip install alsa-midi
-git clone https://github.com/corrados/xairnanoremote.git
+git clone https://github.com/ksipp01/xairnanoremote.git
 cd xairnanoremote
 git submodule update --init
 python3 xairremote.py
