@@ -13,11 +13,9 @@ from pythonx32 import x32
 bus_changed = 0
 found_addr   = -1
 is_raspberry = os.uname()[4][:3] == 'arm'
-# fader1 = 16  #actual XR ch number
-# fader2 = 6
-# fader3 = 8
-# fader4 = 9
-fader = [16,7,8,9]
+
+fader = [16,7,8,9,11,13] # set default assignment for faders that have alt assignment with solo button 
+# allows fader 1-6 to have alt assignment.  1-4 acoustic drums, 5 and 6 for IEM only 
 def main():
   #global found_addr, found_port, fader_init_val, bus_init_val, is_raspberry, bus_changed, fader1, fader2, fader3, fader4, fader
   global found_addr, found_port, fader_init_val, bus_init_val, is_raspberry, bus_changed, fader
@@ -105,6 +103,10 @@ def main():
                 channel = fader[2]
             if channel ==9:
                 channel = fader[3]
+            if channel ==11:
+                channel = fader[4]
+            if channel ==13:
+                channel = fader[5]
             # reset fader init values if SCENE has changed
             if cur_SCENE is not MIDI_table[c][0]:
               query_all_faders(mixer, bus_ch)
@@ -210,9 +212,10 @@ def faderShift_lookup():
     # (status, cc, value): (scene, XRchannelassignment)
     # eg (0XB0, 32, 0): (15) sets the nano fader #1 to channel 16 when the solo button (CC32) is off (0XB0, 32, 127): (0) sets it to 1 when on
     # practice uses electronic drums on ch 16 vs gig acoustic with 4 mices so can use second selection on nano to have 4 mic drum faders
+    # fader 5 and 6 are vocal only for IEM so rarely need adjusting.  
     # number beleow is -1 from actual channel on XR
     return {(0XB0, 32, 0): (1, 16), (0XB0, 32, 127): (1, 1), (0XB0, 33, 0): (2, 7), (0XB0, 33, 127): (2, 2), (0XB0, 34, 0): (3, 8), (0XB0, 34, 127): (3, 3), 
-            (0XB0, 35, 0): (4, 9), (0XB0, 35, 127): (4, 4)}
+            (0XB0, 35, 0): (4, 9), (0XB0, 35, 127): (4, 4), (0XB0, 36, 0): (5, 11), (0XB0, 36, 127): (5, 5), (0XB0, 37, 0): (6, 13), (0XB0, 37, 127): (6, 6)}
 
 if __name__ == '__main__':
   main()
